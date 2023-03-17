@@ -30,6 +30,26 @@ describe Fx::Generators::ViewGenerator, :generator do
       expect(migration_file).to contain "CreateViewTest"
       expect(migration_file).to contain "create_view :test, materialized: true\n"
     end
+
+    it "updates an existing view" do
+      with_view_definition(
+        name: "test",
+        version: 1,
+        sql_definition: "hello"
+      ) do
+        allow(Dir).to receive(:entries).and_return(["test_v01.sql"])
+        migration = file("db/migrate/update_view_test_to_version_2.rb")
+        view_definition = file("db/views/test_v02.sql")
+
+        run_generator ["test", "--materialized"]
+
+        expect(view_definition).to exist
+        expect(migration).to be_a_migration
+        expect(migration_file(migration))
+          .to contain("UpdateViewTestToVersion2")
+        expect(migration_file(migration)).to contain "update_view :test, version: 2, revert_to_version: 1, materialized: true\n"
+      end
+    end
   end
 
   context "when passed --no-migration" do
