@@ -117,7 +117,13 @@ module Fx
       #
       # @return [void]
       def update_function(name, sql_definition)
-        drop_function(name)
+        begin
+          ActiveRecord::Base.transaction(requires_new: true) do
+            drop_function(name)
+          end
+        rescue ActiveRecord::StatementInvalid => e
+          warn "Ignoring `DROP FUNCTION` error (proceeding may work if `CREATE OR REPLACE` is used): #{e}"
+        end
         create_function(sql_definition)
       end
 
